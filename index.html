@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Garden Planner - Where daily plans bloom</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap');
+    
+    body { font-family: 'Quicksand', sans-serif; }
+
+    /* ─── LAYOUT HALAMAN LOGIN ─────────────────────────────────────────── */
+    /*
+      Body wrapper pakai min-h-screen + flex sehingga konten bisa
+      lebih tinggi dari viewport dan tidak terpotong.
+      Login card memakai overflow-y:auto agar bisa scroll jika layar kecil.
+    */
+    #login-page-wrapper {
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;   /* tidak stretch — card tidak memenuhi layar */
+      justify-content: center;
+      padding: 2rem 1rem;
+      box-sizing: border-box;
+    }
+    #login-container {
+      width: 100%;
+      max-width: 448px;           /* max-w-md */
+      border-radius: 38px;
+      border-width: 10px;
+      overflow: hidden;           /* biarkan rounded corner tetap terlihat */
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+      /* TIDAK pakai height/min-height tetap — biarkan konten menentukan tinggi */
+    }
+
+    /* ─── ANIMASI ──────────────────────────────────────────────────────── */
+    @keyframes float-leaf-y {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50%       { transform: translateY(-15px) rotate(8deg); }
+    }
+    @keyframes float-leaf-x {
+      0%, 100% { transform: translateX(0px) rotate(0deg); }
+      50%       { transform: translateX(12px) rotate(-10deg); }
+    }
+    @keyframes sway-plant {
+      0%, 100% { transform: rotate(-4deg); }
+      50%       { transform: rotate(4deg); }
+    }
+    @keyframes drift-clouds {
+      0%   { transform: translateX(-10%); }
+      100% { transform: translateX(110%); }
+    }
+    @keyframes fall-particles {
+      0%   { transform: translateY(-10vh) translateX(0) rotate(0deg); opacity: 0; }
+      10%  { opacity: 0.8; }
+      90%  { opacity: 0.8; }
+      100% { transform: translateY(110vh) translateX(50px) rotate(360deg); opacity: 0; }
+    }
+    @keyframes firefly-glow {
+      0%, 100% { opacity: 0.2; transform: scale(0.8) translateY(0); }
+      50%       { opacity: 0.9; transform: scale(1.3) translateY(-20px); }
+    }
+    @keyframes bounce-gentle {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-8px); }
+    }
+    @keyframes particle-burst {
+      0%   { transform: translate(0, 0) scale(1); opacity: 1; }
+      100% { transform: translate(var(--mx), var(--my)) scale(0); opacity: 0; }
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes shake {
+      0%, 100%  { transform: translateX(0); }
+      20%, 60%  { transform: translateX(-6px); }
+      40%, 80%  { transform: translateX(6px); }
+    }
+    @keyframes spin-slow {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+
+    .anim-float-y    { animation: float-leaf-y 7s ease-in-out infinite; }
+    .anim-float-x    { animation: float-leaf-x 8s ease-in-out infinite; }
+    .anim-sway       { animation: sway-plant 6s ease-in-out infinite; transform-origin: bottom center; }
+    .anim-drift-slow { animation: drift-clouds 45s linear infinite; }
+    .anim-drift-fast { animation: drift-clouds 25s linear infinite; }
+    .anim-fall       { animation: fall-particles 12s linear infinite; }
+    .anim-firefly    { animation: firefly-glow 5s ease-in-out infinite; }
+    .anim-bounce-pet { animation: bounce-gentle 3s ease-in-out infinite; }
+    .anim-fadeinup   { animation: fadeInUp 0.5s ease-out forwards; }
+    .anim-shake      { animation: shake 0.4s ease-in-out; }
+
+    .particle-sparkle {
+      position: absolute;
+      pointer-events: none;
+      user-select: none;
+      z-index: 50;
+      animation: particle-burst 0.9s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+    }
+
+    /* Loading spinner di dalam tombol */
+    .btn-spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin-slow 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+  </style>
+</head>
+
+<!-- Body: latar belakang musiman, posisi relatif untuk dekorasi -->
+<body class="relative overflow-x-hidden transition-all duration-500 bg-gradient-to-b from-rose-100 via-pink-50 to-emerald-100 text-slate-800">
+
+  <!-- PARTIKEL CUACA MUSIMAN -->
+  <div id="weather-ambient-container" class="fixed inset-0 pointer-events-none overflow-hidden z-0"></div>
+
+  <!-- DEKORASI KIRI (desktop) -->
+  <div class="hidden lg:block fixed left-8 top-12 z-0 w-72 text-left pointer-events-none select-none">
+    <div class="anim-sway text-9xl filter drop-shadow-md">🌿</div>
+    <div class="text-4xl ml-12 animate-bounce" style="animation-duration: 4.5s;">🌻</div>
+    <div id="left-quote" class="text-sm italic mt-4 bg-white/45 p-4 rounded-2xl border border-emerald-200/20 backdrop-blur-sm shadow-sm text-emerald-800/60 transition-colors duration-500">
+      "The love of gardening is a seed once sown that never dies." <br>— Gertrude Jekyll
+    </div>
+  </div>
+
+  <!-- DEKORASI KANAN (desktop) -->
+  <div class="hidden lg:block fixed right-8 bottom-12 z-0 w-72 text-right pointer-events-none select-none">
+    <div class="anim-float-y text-9xl filter drop-shadow-md inline-block">🌸</div>
+    <div class="text-5xl mr-14 anim-sway">🪴</div>
+    <div id="right-quote" class="text-sm italic mt-4 bg-white/45 p-4 rounded-2xl border border-emerald-200/20 backdrop-blur-sm shadow-sm text-emerald-800/60 transition-colors duration-500">
+      Tanam benih pilihan Anda untuk menumbuhkan Sunflower, Rose, atau Lavender! Selesaikan tugas harian Anda untuk menyehatkan taman virtual! 🦋🐞
+    </div>
+  </div>
+
+  <!-- ================================================================
+       HALAMAN LOGIN — wrapper flex untuk centering aman & tidak terpotong
+       ================================================================ -->
+  <div id="login-page-wrapper">
+    <div id="login-container" class="bg-white/92 border-rose-400 anim-fadeinup">
+
+      <!-- Header login -->
+      <header class="p-4 flex justify-center items-center shadow-md bg-gradient-to-r from-pink-400 to-rose-400 text-white flex-shrink-0">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl" style="display:inline-block; animation: spin-slow 10s linear infinite;">🌱</span>
+          <span class="font-bold text-lg tracking-wide">Garden Planner</span>
+        </div>
+      </header>
+
+      <!-- Konten form -->
+      <main class="p-6 flex flex-col justify-center space-y-5 bg-white/92">
+
+        <!-- Ikon & judul -->
+        <div class="text-center pt-2">
+          <span class="text-6xl anim-float-y inline-block mb-3">🦊</span>
+          <h1 class="text-2xl font-bold text-pink-600" id="form-title">Selamat Datang!</h1>
+          <p class="text-sm text-slate-500 mt-1" id="form-subtitle">Masuk untuk mengurus tamanmu.</p>
+        </div>
+
+        <!-- Fields -->
+        <div class="space-y-3 bg-pink-50/60 border-2 border-pink-100 rounded-2xl p-5">
+
+          <!-- Email (selalu tampil) -->
+          <div class="flex flex-col space-y-1">
+            <label class="text-sm font-bold text-slate-700">✉️ Email</label>
+            <input type="email" id="email-input" placeholder="Masukkan email..."
+              class="w-full px-4 py-2.5 rounded-xl border-2 focus:outline-none transition text-sm border-pink-200 focus:border-pink-400 bg-white text-slate-800"/>
+          </div>
+
+          <!-- Password (selalu tampil) -->
+          <div class="flex flex-col space-y-1">
+            <label class="text-sm font-bold text-slate-700">🔒 Password</label>
+            <input type="password" id="password-input" placeholder="Masukkan password..."
+              class="w-full px-4 py-2.5 rounded-xl border-2 focus:outline-none transition text-sm border-pink-200 focus:border-pink-400 bg-white text-slate-800"/>
+          </div>
+
+          <!-- Konfirmasi Password (hanya Sign Up) -->
+          <div id="register-confirm-field" class="hidden flex-col space-y-1">
+            <label class="text-sm font-bold text-slate-700">🔐 Konfirmasi Password</label>
+            <input type="password" id="confirm-password-input" placeholder="Ulangi password..."
+              class="w-full px-4 py-2.5 rounded-xl border-2 focus:outline-none transition text-sm border-pink-200 focus:border-pink-400 bg-white text-slate-800"/>
+          </div>
+
+          <!-- Pesan error -->
+          <p id="error-message" class="hidden text-xs text-red-600 font-bold text-center py-2 px-3 bg-red-50 rounded-xl border border-red-200"></p>
+
+          <!-- Tombol utama -->
+          <button id="main-btn"
+            class="w-full py-3 px-6 text-white font-bold rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2 text-base mt-1 bg-gradient-to-r from-emerald-400 to-teal-400 hover:from-emerald-500 hover:to-teal-500">
+            <span id="main-btn-text">Masuk ke Taman</span>
+          </button>
+        </div>
+
+        <!-- Switch login/register -->
+        <div class="text-center text-sm font-bold text-slate-500 pb-2">
+          <span id="switch-text">Belum punya akun?</span>
+          <button id="switch-btn" class="text-pink-500 hover:text-pink-600 underline ml-1">Daftar di sini</button>
+        </div>
+
+      </main>
+
+      <!-- Footer login -->
+      <footer class="p-3 text-center text-[10px] font-bold border-t bg-gradient-to-t from-emerald-100/50 to-transparent border-emerald-100/30 text-emerald-700/80 flex-shrink-0">
+        ✨ Cozy Garden Planner Generative Symphony Active
+      </footer>
+    </div>
+  </div><!-- end login-page-wrapper -->
+
+
+  <!-- ================================================================
+       HALAMAN UTAMA / APP FRAME
+       ================================================================ -->
+  <div id="app-page-wrapper" class="hidden min-h-screen flex items-center justify-center p-4 md:p-8">
+    <div id="app-frame" class="w-full max-w-md rounded-[38px] shadow-2xl border-[10px] overflow-hidden flex flex-col relative min-h-[790px] z-10 transition-all duration-500">
+
+      <!-- Pet -->
+      <div class="absolute top-[75px] right-6 z-30 flex flex-col items-end pointer-events-auto">
+        <div id="pet-bubble" class="hidden bg-amber-100 text-amber-950 text-[11px] font-bold py-1.5 px-3 rounded-2xl rounded-tr-none shadow-md border border-amber-200 mb-1 max-w-[150px] text-right animate-bounce"></div>
+        <button onclick="handlePetInteraction()" class="anim-bounce-pet hover:scale-110 active:scale-95 transition p-2 rounded-full shadow-md border flex items-center gap-1 bg-amber-50/90 border-amber-200/60" id="pet-button">
+          <span class="text-2xl">🦊</span>
+          <span class="text-[9px] font-bold text-amber-800" id="pet-label">Buddy</span>
+        </button>
+      </div>
+
+      <!-- Header app -->
+      <header id="app-header" class="p-4 flex justify-between items-center shadow-md transition-all duration-500 relative z-20">
+        <div id="header-back-container"></div>
+        <div class="flex items-center gap-1.5">
+          <button onclick="toggleLanguage()" class="p-2 rounded-full active:scale-90 transition flex items-center gap-0.5 bg-white/20 text-white" title="Switch Language">
+            <i data-lucide="globe" class="w-3.5 h-3.5"></i>
+            <span id="lang-indicator" class="text-[10px] font-bold uppercase">en</span>
+          </button>
+          <button onclick="toggleDarkMode()" id="dark-mode-btn" class="p-2 rounded-full transition active:scale-90 flex items-center justify-center bg-slate-800 text-yellow-300 hover:bg-slate-700" title="Switch Theme">
+            <i data-lucide="moon" class="w-4 h-4"></i>
+          </button>
+          <button onclick="toggleMusic()" id="music-btn" class="p-2 rounded-full transition active:scale-90 flex items-center justify-center bg-white/20 text-white" title="Music Box">
+            <i data-lucide="volume-x" class="w-4 h-4"></i>
+          </button>
+          <button onclick="handleLogout()" class="p-2 rounded-full transition active:scale-90 flex items-center justify-center bg-white/20 text-white hover:bg-red-400/40" title="Logout">
+            <i data-lucide="log-out" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- Konten utama app -->
+      <main id="app-main" class="flex-1 p-5 pb-8 overflow-y-auto relative z-10"></main>
+
+      <!-- Footer app -->
+      <footer id="app-footer" class="p-3 text-center text-[10px] font-bold border-t transition-all duration-500 relative z-20 flex items-center justify-center gap-1">
+        <span id="footer-text">✨ Cozy Garden Planner</span>
+      </footer>
+
+      <!-- Modal Alert -->
+      <div id="alert-modal" class="hidden absolute inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+        <div id="alert-card" class="rounded-2xl p-5 w-full max-w-xs text-center border-4 border-amber-300 shadow-xl space-y-4 bg-white">
+          <span class="text-4xl animate-bounce inline-block">🌱</span>
+          <p id="alert-text" class="text-sm font-bold leading-relaxed text-slate-800"></p>
+          <button onclick="closeAlert()" class="w-full py-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-white font-bold rounded-xl text-sm transition active:scale-95 shadow-md">OK</button>
+        </div>
+      </div>
+
+      <!-- Modal Success -->
+      <div id="success-modal" class="hidden absolute inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+        <div id="success-card" class="rounded-3xl p-6 w-full max-w-xs text-center border-4 border-emerald-400 shadow-2xl space-y-4 relative overflow-hidden bg-white">
+          <div class="absolute -top-3 -right-3 text-4xl animate-pulse">🦋</div>
+          <span class="text-5xl block animate-bounce">🌻</span>
+          <h3 id="success-title" class="text-lg font-bold text-emerald-500"></h3>
+          <p id="success-text" class="text-xs leading-relaxed text-slate-500"></p>
+          <button onclick="goToTodoPage()" id="success-next-btn" class="w-full py-3 bg-gradient-to-r from-emerald-400 to-teal-400 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl text-sm transition active:scale-95 shadow-lg"></button>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- end app-page-wrapper -->
+
+
+  <!-- ================================================================
+       JAVASCRIPT
+       ================================================================ -->
+  <script>
+
+    // ================================================================
+    //  ⚙️  KONFIGURASI — ISI URL APPS SCRIPT KAMU DI SINI
+    // ================================================================
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzu4ND9RhA8rRysJTXUBzncW3wDoI1ftIyPVJj6M-Yjw889umwcLMYFF0OiRSB6nqCG/exec";
+    // Contoh: "https://script.google.com/macros/s/AKfy.../exec"
+
+    // ================================================================
+    //  HELPER: Tampilkan / Sembunyikan halaman
+    // ================================================================
+    function showLoginPage() {
+      document.getElementById('login-page-wrapper').style.display = 'flex';
+      document.getElementById('app-page-wrapper').classList.add('hidden');
+    }
+    function showAppPage() {
+      document.getElementById('login-page-wrapper').style.display = 'none';
+      document.getElementById('app-page-wrapper').classList.remove('hidden');
+    }
+
+    // ================================================================
+    //  GOOGLE SHEETS — SIGN UP (POST) & LOGIN (GET via fetch)
+    // ================================================================
+
+    /**
+     * Daftar akun baru → kirim ke Google Sheets
+     * Kolom yang dikirim: email, password, nama (kosong), dob (kosong), avatar (kosong), timestamp
+     */
+    async function apiSignUp(email, password) {
+      if (!WEB_APP_URL || WEB_APP_URL.includes("URL_GOOGLE")) {
+        // Mode DEMO jika URL belum diisi
+        console.warn("[DEMO] GSheets URL belum diisi. Simulasi sign-up berhasil.");
+        return { success: true, demo: true };
+      }
+      const payload = {
+        action    : "signup",
+        email     : email,
+        password  : password,
+        nama      : "",
+        dob       : "",
+        avatar    : "",
+        timestamp : new Date().toISOString()
+      };
+      const resp = await fetch(WEB_APP_URL, {
+        method : "POST",
+        mode   : "no-cors",        // GAS Web App membutuhkan no-cors
+        headers: { "Content-Type": "application/json" },
+        body   : JSON.stringify(payload)
+      });
+      // no-cors → resp.type = 'opaque', tidak bisa baca body.
+      // Anggap berhasil jika tidak throw.
+      return { success: true };
+    }
+
+    /**
+     * Validasi login → GET ke Apps Script dengan email & password
+     * Apps Script akan membalas JSON { found: true/false, nama, dob, avatar }
+     */
+    async function apiLogin(email, password) {
+      if (!WEB_APP_URL || WEB_APP_URL.includes("URL_GOOGLE")) {
+        // Mode DEMO: cek database lokal saja
+        console.warn("[DEMO] GSheets URL belum diisi. Validasi dari DEMO_USERS.");
+        const found = DEMO_USERS.find(
+          u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
+        );
+        if (found) return { found: true, nama: found.nama, dob: found.dob, avatar: found.avatar };
+        return { found: false };
+      }
+      const url    = `${WEB_APP_URL}?action=login&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`;
+      const resp   = await fetch(url);
+      const data   = await resp.json();
+      return data;   // { found: true/false, nama, dob, avatar }
+    }
+
+    /**
+     * Update profil (nama, dob, avatar) di Google Sheets setelah user mengisi profil
+     */
+    async function apiUpdateProfile(email, nama, dob, avatar) {
+      if (!WEB_APP_URL || WEB_APP_URL.includes("URL_GOOGLE")) {
+        console.warn("[DEMO] GSheets URL belum diisi. Update profil hanya di localStorage.");
+        return { success: true };
+      }
+      const payload = {
+        action   : "updateProfile",
+        email    : email,
+        nama     : nama,
+        dob      : dob,
+        avatar   : avatar,
+        timestamp: new Date().toISOString()
+      };
+      await fetch(WEB_APP_URL, {
+        method : "POST",
+        mode   : "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body   : JSON.stringify(payload)
+      });
+      return { success: true };
+    }
+
+    // ================================================================
+    //  DEMO USERS (hanya aktif jika WEB_APP_URL belum diisi)
+    // ================================================================
+    const DEMO_USERS = [
+      { email: "admin@garden.com", password: "garden123", nama: "Garden Admin", dob: "1995-06-15", avatar: "fox" },
+      { email: "user@garden.com",  password: "user123",   nama: "Happy Gardener", dob: "2000-01-01", avatar: "bunny" }
+    ];
+    // Daftar akun yang dibuat lewat Sign Up (hanya di DEMO mode, tersimpan di RAM)
+    const runtimeUsers = [];
+
+    // ================================================================
+    //  STATE SESSION
+    // ================================================================
+    let currentUser = null;   // { email, nama, dob, avatar }
+    let isLoginMode = true;
+
+    // ================================================================
+    //  ELEMEN DOM — LOGIN
+    // ================================================================
+    const emailInput      = document.getElementById('email-input');
+    const passwordInput   = document.getElementById('password-input');
+    const confirmPwInput  = document.getElementById('confirm-password-input');
+    const mainBtn         = document.getElementById('main-btn');
+    const mainBtnText     = document.getElementById('main-btn-text');
+    const switchBtn       = document.getElementById('switch-btn');
+    const switchText      = document.getElementById('switch-text');
+    const formTitle       = document.getElementById('form-title');
+    const formSubtitle    = document.getElementById('form-subtitle');
+    const errorMsg        = document.getElementById('error-message');
+
+    function showLoginError(msg) {
+      errorMsg.innerText = msg;
+      errorMsg.classList.remove('hidden');
+      const box = errorMsg.closest('.space-y-3');
+      if (box) { box.classList.add('anim-shake'); setTimeout(() => box.classList.remove('anim-shake'), 400); }
+    }
+    function hideLoginError() { errorMsg.classList.add('hidden'); }
+
+    function setRegisterMode(on) {
+      const cf = document.getElementById('register-confirm-field');
+      if (on) { cf.classList.remove('hidden'); cf.classList.add('flex'); }
+      else    { cf.classList.add('hidden');    cf.classList.remove('flex'); }
+    }
+
+    function setBtnLoading(loading) {
+      mainBtn.disabled = loading;
+      if (loading) {
+        mainBtnText.innerHTML = `<span class="btn-spinner"></span> Memproses...`;
+      } else {
+        mainBtnText.innerHTML = isLoginMode ? 'Masuk ke Taman' : 'Buat Akun 🌱';
+      }
+    }
+
+    // Switch login ↔ sign up
+    switchBtn.addEventListener('click', () => {
+      isLoginMode = !isLoginMode;
+      hideLoginError();
+      emailInput.value = '';
+      passwordInput.value = '';
+      confirmPwInput.value = '';
+
+      if (isLoginMode) {
+        formTitle.innerText    = 'Selamat Datang!';
+        formSubtitle.innerText = 'Masuk untuk mengurus tamanmu.';
+        mainBtnText.innerText  = 'Masuk ke Taman';
+        switchText.innerText   = 'Belum punya akun?';
+        switchBtn.innerText    = 'Daftar di sini';
+        setRegisterMode(false);
+      } else {
+        formTitle.innerText    = 'Taman Baru!';
+        formSubtitle.innerText = 'Daftarkan akunmu untuk mulai menanam.';
+        mainBtnText.innerHTML  = 'Buat Akun 🌱';
+        switchText.innerText   = 'Sudah punya akun?';
+        switchBtn.innerText    = 'Masuk di sini';
+        setRegisterMode(true);
+      }
+    });
+
+    // Tombol utama: login ATAU sign up
+    mainBtn.addEventListener('click', async () => {
+      hideLoginError();
+      const email    = emailInput.value.trim();
+      const password = passwordInput.value.trim();
+
+      if (!email || !password) { showLoginError('Email dan Password tidak boleh kosong!'); return; }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showLoginError('Format email tidak valid.'); return; }
+
+      setBtnLoading(true);
+
+      try {
+        if (isLoginMode) {
+          // ── LOGIN ────────────────────────────────────────────────
+          let result;
+          if (!WEB_APP_URL || WEB_APP_URL.includes("URL_GOOGLE")) {
+            // Demo: cek DEMO_USERS + runtimeUsers
+            const found = [...DEMO_USERS, ...runtimeUsers].find(
+              u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
+            );
+            result = found ? { found: true, nama: found.nama, dob: found.dob, avatar: found.avatar }
+                           : { found: false };
+          } else {
+            result = await apiLogin(email, password);
+          }
+
+          if (!result.found) {
+            showLoginError('Email atau password salah. Coba lagi.');
+            setBtnLoading(false);
+            return;
+          }
+
+          // Login berhasil — simpan session
+          currentUser = { email, nama: result.nama || '', dob: result.dob || '', avatar: result.avatar || '' };
+          state.profile.name       = currentUser.nama;
+          state.profile.dob        = currentUser.dob;
+          state.profile.avatar     = currentUser.avatar;
+          state.profile.isComplete = !!(currentUser.nama && currentUser.dob && currentUser.avatar);
+          localStorage.setItem('gardenplanner_profile', JSON.stringify(state.profile));
+
+          showAppPage();
+          updateSeasonTheme();
+          renderApp();
+
+        } else {
+          // ── SIGN UP ──────────────────────────────────────────────
+          const confirmPw = confirmPwInput.value.trim();
+
+          if (password.length < 6) { showLoginError('Password minimal 6 karakter.'); setBtnLoading(false); return; }
+          if (password !== confirmPw) { showLoginError('Password dan konfirmasi tidak cocok.'); setBtnLoading(false); return; }
+
+          // Cek duplikat (demo + runtime)
+          const exists = [...DEMO_USERS, ...runtimeUsers].find(
+            u => u.email.toLowerCase() === email.toLowerCase()
+          );
+          if (exists) { showLoginError('Email sudah terdaftar. Silakan masuk.'); setBtnLoading(false); return; }
+
+          // Kirim ke GSheets (atau simpan ke runtimeUsers di demo mode)
+          if (!WEB_APP_URL || WEB_APP_URL.includes("URL_GOOGLE")) {
+            runtimeUsers.push({ email, password, nama: '', dob: '', avatar: '' });
+          } else {
+            await apiSignUp(email, password);
+          }
+
+          // Daftar berhasil → langsung masuk
+          currentUser = { email, nama: '', dob: '', avatar: '' };
+          state.profile = { name: '', dob: '', avatar: '', isComplete: false };
+          localStorage.setItem('gardenplanner_profile', JSON.stringify(state.profile));
+
+          showAppPage();
+          updateSeasonTheme();
+          renderApp();
+          // Arahkan ke profil agar user melengkapi data
+          navigate('profile');
+        }
+
+      } catch (err) {
+        console.error(err);
+        showLoginError('Gagal terhubung ke server. Coba lagi.');
+        setBtnLoading(false);
+      }
+    });
+
+    // Enter untuk submit
+    [emailInput, passwordInput, confirmPwInput].forEach(el => {
+      el.addEventListener('keydown', e => { if (e.key === 'Enter') mainBtn.click(); });
+    });
+
+    // ================================================================
+    //  LOGOUT
+    // ================================================================
+    function handleLogout() {
+      playClickSound();
+      currentUser = null;
+      state.profile = { name: '', dob: '', avatar: '', isComplete: false };
+      // Reset form
+      emailInput.value = '';
+      passwordInput.value = '';
+      confirmPwInput.value = '';
+      hideLoginError();
+      isLoginMode = true;
+      formTitle.innerText    = 'Selamat Datang!';
+      formSubtitle.innerText = 'Masuk untuk mengurus tamanmu.';
+      mainBtnText.innerText  = 'Masuk ke Taman';
+      mainBtn.disabled       = false;
+      switchText.innerText   = 'Belum punya akun?';
+      switchBtn.innerText    = 'Daftar di sini';
+      setRegisterMode(false);
+      showLoginPage();
+    }
+
+    // ================================================================
+    //  TEMA MUSIMAN
+    // ================================================================
+    const seasonThemes = {
+      spring: {
+        light: {
+          bg: 'bg-gradient-to-b from-rose-100 via-pink-50 to-emerald-100 text-slate-800',
+          card: 'bg-white/92 border-rose-400 shadow-rose-200/50 text-slate-800',
+          header: 'bg-gradient-to-r from-pink-400 to-rose-400 text-white',
+          btnPrimary: 'bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500 text-white',
+          btnSecondary: 'bg-gradient-to-r from-emerald-400 to-teal-400 text-white',
+          accentText: 'text-pink-600',
+          banner: 'bg-gradient-to-b from-pink-100 via-rose-50 to-emerald-100 border-pink-300',
+          formBg: 'bg-pink-50/50 border-pink-100/80',
+          inputText: 'border-pink-200 focus:border-pink-400 bg-white text-slate-800',
+        },
+        dark: {
+          bg: 'bg-gradient-to-b from-slate-950 via-rose-950/20 to-indigo-950 text-slate-100',
+          card: 'bg-slate-900/95 border-pink-900/60 text-slate-100',
+          header: 'bg-gradient-to-r from-pink-900 to-rose-900 text-slate-100',
+          btnPrimary: 'bg-gradient-to-r from-pink-800 to-rose-800 hover:from-pink-700 hover:to-rose-700 text-slate-100',
+          btnSecondary: 'bg-gradient-to-r from-emerald-800 to-teal-800 text-slate-100',
+          accentText: 'text-pink-400',
+          banner: 'bg-gradient-to-b from-indigo-950 to-pink-950/40 border-pink-900',
+          formBg: 'bg-slate-800/80 border-pink-900/40',
+          inputText: 'border-slate-700 text-white bg-slate-800 focus:border-pink-500',
+        }
+      },
+      summer: {
+        light: {
+          bg: 'bg-gradient-to-b from-sky-100 via-amber-50 to-emerald-100 text-slate-800',
+          card: 'bg-white/92 border-amber-400 text-slate-800',
+          header: 'bg-gradient-to-r from-amber-400 to-teal-500 text-white',
+          btnPrimary: 'bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-500 hover:to-orange-500 text-white',
+          btnSecondary: 'bg-gradient-to-r from-teal-400 to-emerald-400 text-white',
+          accentText: 'text-amber-700',
+          banner: 'bg-gradient-to-b from-sky-200 via-sky-100 to-emerald-200 border-amber-300',
+          formBg: 'bg-amber-50/50 border-amber-100/80',
+          inputText: 'border-amber-200 focus:border-amber-400 bg-white text-slate-800',
+        },
+        dark: {
+          bg: 'bg-gradient-to-b from-slate-950 via-amber-950/20 to-teal-950 text-slate-100',
+          card: 'bg-slate-900/95 border-amber-900/60 text-slate-100',
+          header: 'bg-gradient-to-r from-amber-900 to-teal-900 text-slate-100',
+          btnPrimary: 'bg-gradient-to-r from-amber-800 to-orange-800 hover:from-amber-700 hover:to-orange-700 text-slate-100',
+          btnSecondary: 'bg-gradient-to-r from-teal-800 to-emerald-800 text-slate-100',
+          accentText: 'text-amber-400',
+          banner: 'bg-gradient-to-b from-indigo-950 to-amber-950/40 border-amber-900',
+          formBg: 'bg-slate-800/80 border-amber-900/40',
+          inputText: 'border-slate-700 text-white bg-slate-800 focus:border-amber-500',
+        }
+      },
+      autumn: {
+        light: {
+          bg: 'bg-gradient-to-b from-orange-100 via-amber-50 to-yellow-100 text-slate-800',
+          card: 'bg-white/92 border-orange-400 text-slate-800',
+          header: 'bg-gradient-to-r from-orange-400 to-red-400 text-white',
+          btnPrimary: 'bg-gradient-to-r from-orange-400 to-red-400 hover:from-orange-500 hover:to-red-500 text-white',
+          btnSecondary: 'bg-gradient-to-r from-amber-500 to-yellow-500 text-white',
+          accentText: 'text-orange-700',
+          banner: 'bg-gradient-to-b from-orange-100 via-amber-100 to-yellow-200 border-orange-300',
+          formBg: 'bg-orange-50/50 border-orange-100/80',
+          inputText: 'border-orange-200 focus:border-orange-400 bg-white text-slate-800',
+        },
+        dark: {
+          bg: 'bg-gradient-to-b from-slate-950 via-orange-950/20 to-red-950 text-slate-100',
+          card: 'bg-slate-900/95 border-orange-900/60 text-slate-100',
+          header: 'bg-gradient-to-r from-orange-900 to-red-900 text-slate-100',
+          btnPrimary: 'bg-gradient-to-r from-orange-800 to-red-800 hover:from-orange-700 hover:to-red-700 text-slate-100',
+          btnSecondary: 'bg-gradient-to-r from-amber-800 to-yellow-800 text-slate-100',
+          accentText: 'text-orange-400',
+          banner: 'bg-gradient-to-b from-indigo-950 to-orange-950/40 border-orange-900',
+          formBg: 'bg-slate-800/80 border-orange-900/40',
+          inputText: 'border-slate-700 text-white bg-slate-800 focus:border-pink-500',
+        }
+      },
+      winter: {
+        light: {
+          bg: 'bg-gradient-to-b from-sky-200 via-blue-50 to-indigo-100 text-slate-800',
+          card: 'bg-white/92 border-sky-400 text-slate-800',
+          header: 'bg-gradient-to-r from-sky-400 to-indigo-500 text-white',
+          btnPrimary: 'bg-gradient-to-r from-sky-400 to-indigo-500 hover:from-sky-500 hover:to-indigo-600 text-white',
+          btnSecondary: 'bg-gradient-to-r from-slate-400 to-indigo-400 text-white',
+          accentText: 'text-sky-700',
+          banner: 'bg-gradient-to-b from-sky-300 via-blue-100 to-indigo-100 border-sky-300',
+          formBg: 'bg-sky-50/50 border-sky-100/80',
+          inputText: 'border-sky-200 focus:border-sky-400 bg-white text-slate-800',
+        },
+        dark: {
+          bg: 'bg-gradient-to-b from-slate-950 via-sky-950/20 to-indigo-950 text-slate-100',
+          card: 'bg-slate-900/95 border-sky-900/60 text-slate-100',
+          header: 'bg-gradient-to-r from-sky-900 to-indigo-900 text-slate-100',
+          btnPrimary: 'bg-gradient-to-r from-sky-800 to-indigo-800 hover:from-sky-700 hover:to-indigo-700 text-slate-100',
+          btnSecondary: 'bg-gradient-to-r from-slate-800 to-indigo-800 text-slate-100',
+          accentText: 'text-sky-400',
+          banner: 'bg-gradient-to-b from-indigo-950 to-sky-950 border-sky-900',
+          formBg: 'bg-slate-800/80 border-sky-900/40',
+          inputText: 'border-slate-700 text-white bg-slate-800 focus:border-pink-500',
+        }
+      }
+    };
+
+    // ================================================================
+    //  TERJEMAHAN
+    // ================================================================
+    const translations = {
+      en: {
+        home:"Home", profile:"Profile", todo:"To-Do List", back:"Back",
+        welcome:"Welcome to Garden Planner!", tagline:"Where daily plans bloom into beautiful gardens.",
+        enterProfile:"Enter Profile", completeProfileFirst:"Please complete your profile first!",
+        name:"Name", dob:"Date of Birth", chooseAvatar:"Choose Your Avatar",
+        save:"Save Garden Profile", fillAllFields:"Please fill in all fields and select an avatar!",
+        successTitle:"Garden Created!", successText:"Your garden profile is complete, let's make your to-do list!",
+        next:"Let's Go!", addActivity:"Plant a New Seed", taskName:"Task Name / Activity",
+        date:"Date", time:"Time", addBtn:"Plant Seed", allTasks:"My Tasks & Plants",
+        done:"Bloomed", notDone:"Sprouting", showAll:"Show All Tasks", showToday:"Show Today's Tasks",
+        noTasks:"No seeds planted yet. Start planting to grow your garden!",
+        gardenHealth:"Garden Vitality", level:"Garden Level", chooseSeed:"Choose Flower Seed",
+        season:"Garden Season", spring:"Spring", summer:"Summer", autumn:"Autumn", winter:"Winter",
+      },
+      id: {
+        home:"Beranda", profile:"Profil", todo:"Daftar Tugas", back:"Kembali",
+        welcome:"Selamat Datang di Garden Planner!", tagline:"Di mana rencana harian mekar menjadi taman yang indah.",
+        enterProfile:"Isi Profil", completeProfileFirst:"Harap lengkapi profil Anda terlebih dahulu!",
+        name:"Nama", dob:"Tanggal Lahir", chooseAvatar:"Pilih Avatarmu",
+        save:"Simpan Profil Taman", fillAllFields:"Harap isi semua kolom dan pilih satu avatar!",
+        successTitle:"Taman Dibuat!", successText:"Profil tamanmu sudah lengkap, yuk buat daftar tugas pertamamu!",
+        next:"Ayo Mulai!", addActivity:"Tanam Benih Baru", taskName:"Nama Tugas / Aktivitas",
+        date:"Tanggal", time:"Waktu", addBtn:"Tanam Benih", allTasks:"Tugas & Tanaman Saya",
+        done:"Mekar", notDone:"Tunas", showAll:"Tampilkan Semua", showToday:"Tampilkan Hari Ini",
+        noTasks:"Belum ada benih yang ditanam. Yuk mulai menanam!",
+        gardenHealth:"Vitalitas Taman", level:"Level Taman", chooseSeed:"Pilih Benih Bunga",
+        season:"Musim Taman", spring:"Semi", summer:"Panas", autumn:"Gugur", winter:"Dingin",
+      }
+    };
+
+    const SEEDS = [
+      { id:'sunflower', emoji:'🌻', name:'Sunflower' },
+      { id:'rose',      emoji:'🌹', name:'Mystic Rose' },
+      { id:'lavender',  emoji:'🪻', name:'Lavender' },
+      { id:'cactus',    emoji:'🌵', name:'Desert Cactus' },
+      { id:'clover',    emoji:'🍀', name:'Lucky Clover' },
+      { id:'mushroom',  emoji:'🍄', name:'Fairy Mushroom' },
+    ];
+    const AVATARS = [
+      { id:'bunny',     emoji:'🐰', name:'Fluffy Bunny' },
+      { id:'fox',       emoji:'🦊', name:'Rusty Fox' },
+      { id:'panda',     emoji:'🐼', name:'Bamboo Panda' },
+      { id:'koala',     emoji:'🐨', name:'Eucalyptus Koala' },
+      { id:'frog',      emoji:'🐸', name:'Lilypad Frog' },
+      { id:'bee',       emoji:'🐝', name:'Honey Bee' },
+      { id:'ladybug',   emoji:'🐞', name:'Lucky Ladybug' },
+      { id:'flower',    emoji:'🌸', name:'Cherry Blossom' },
+      { id:'sunflower', emoji:'🌻', name:'Sunny Flower' },
+      { id:'hedgehog',  emoji:'🦔', name:'Spiky Hedgehog' },
+    ];
+    const PET_QUOTES = {
+      en: ["You're doing amazing today! 🦊","Don't forget to water your seeds! 💧","Every small task helps your garden grow! 🌱","Take a deep breath and keep going! ✨","I'm so proud to be your garden helper! ❤️"],
+      id:  ["Kamu luar biasa hari ini! 🦊","Jangan lupa siram benihmu! 💧","Setiap tugas kecil membantu tamanmu tumbuh! 🌱","Tarik napas dalam-dalam dan lanjutkan! ✨","Aku bangga sekali jadi asisten tamanmu! ❤️"]
+    };
+
+    // ================================================================
+    //  STATE UTAMA
+    // ================================================================
+    let state = {
+      page:'home', lang:'en', darkMode:false, season:'spring',
+      profile:{ name:'', dob:'', avatar:'', isComplete:false },
+      todos:[], selectedSeed:'sunflower', showAll:true, isMusicPlaying:false
+    };
+
+    let audioCtx = null, musicInterval = null, melodyStep = 0, melodyNoteIndex = 3;
+
+    const CHORDS = ['C','Am','F','G','C','Em','F','Fm','Dm','G','Em','Am','F','G','C','C'];
+    const CHORD_DATA = {
+      'C' :{ root:130.81, scale:[261.63,329.63,392.00,440.00,523.25,659.25,783.99] },
+      'Am':{ root:110.00, scale:[220.00,261.63,329.63,392.00,440.00,523.25,659.25] },
+      'F' :{ root:87.31,  scale:[174.61,220.00,261.63,293.66,349.23,440.00,523.25] },
+      'G' :{ root:98.00,  scale:[196.00,246.94,293.66,329.63,392.00,493.88,587.33] },
+      'Em':{ root:82.41,  scale:[164.81,196.00,246.94,293.66,329.63,392.00,493.88] },
+      'Fm':{ root:87.31,  scale:[174.61,207.65,261.63,311.13,349.23,415.30,523.25] },
+      'Dm':{ root:73.42,  scale:[146.83,174.61,220.00,261.63,293.66,349.23,440.00] }
+    };
+    const RHYTHM_TEMPLATES = [
+      [true,true,true,false,true,true,true,false],
+      [true,false,true,true,false,true,true,false],
+      [true,true,false,true,true,false,true,true],
+      [true,false,true,false,true,false,true,false]
+    ];
+
+    // ================================================================
+    //  INISIALISASI
+    // ================================================================
+    window.onload = function() {
+      const sp = localStorage.getItem('gardenplanner_profile');
+      if (sp) state.profile = JSON.parse(sp);
+      const st = localStorage.getItem('gardenplanner_todos');
+      if (st) state.todos = JSON.parse(st);
+      const sd = localStorage.getItem('gardenplanner_darkmode');
+      if (sd) state.darkMode = JSON.parse(sd);
+      const ss = localStorage.getItem('gardenplanner_season');
+      if (ss) state.season = ss;
+      const sl = localStorage.getItem('gardenplanner_lang');
+      if (sl) state.lang = sl;
+
+      document.getElementById('app-frame').addEventListener('click', triggerClickSparkles);
+      lucide.createIcons();
+      renderWeatherEffects();
+    };
+
+    function t(k) { return translations[state.lang][k] || k; }
+    function getCurrentTheme() { return seasonThemes[state.season][state.darkMode ? 'dark' : 'light']; }
+
+    // ================================================================
+    //  RENDER UTAMA
+    // ================================================================
+    function renderApp() {
+      const main  = document.getElementById('app-main');
+      const theme = getCurrentTheme();
+
+      document.getElementById('lang-indicator').innerText = state.lang;
+      document.getElementById('footer-text').innerText    = `✨ ${t('welcome')}`;
+      document.getElementById('pet-label').innerText      = state.lang === 'en' ? 'Buddy' : 'Asisten';
+
+      const backEl = document.getElementById('header-back-container');
+      if (state.page !== 'home') {
+        backEl.innerHTML = `<button onclick="navigate('home')" class="flex items-center gap-1 active:scale-95 transition px-3 py-1.5 rounded-full text-xs font-semibold ${state.darkMode?'bg-slate-800 hover:bg-slate-700 text-emerald-400':'bg-white/20 hover:bg-white/35 text-white'}"><i data-lucide="arrow-left" class="w-4 h-4"></i><span>${t('back')}</span></button>`;
+      } else {
+        backEl.innerHTML = `<div class="flex items-center gap-2 text-white"><span class="text-2xl" style="display:inline-block;animation:spin-slow 10s linear infinite;">🌱</span><span class="font-bold text-lg tracking-wide">Garden Planner</span></div>`;
+      }
+
+      if      (state.page === 'home')    renderHomePage(main, theme);
+      else if (state.page === 'profile') renderProfilePage(main, theme);
+      else if (state.page === 'todo')    renderTodoPage(main, theme);
+
+      lucide.createIcons();
+    }
+
+    // ── HOME ──────────────────────────────────────────────────────────
+    function renderHomePage(container, theme) {
+      const activeAvatar = AVATARS.find(a => a.id === state.profile.avatar);
+      const total     = state.todos.length;
+      const completed = state.todos.filter(x => x.done).length;
+      const health    = total > 0 ? Math.round((completed/total)*100) : 0;
+      const level     = Math.max(1, Math.floor(completed/3)+1);
+
+      let flowersHtml = '';
+      state.todos.forEach((todo,idx) => {
+        if (idx>5) return;
+        flowersHtml += `<span class="text-3xl transition-all duration-500 hover:scale-125 cursor-pointer ${todo.done?'anim-float-y':'opacity-70 animate-pulse'}" title="${todo.task}" style="animation-delay:${idx*0.4}s">${todo.done?todo.seedEmoji:'🌱'}</span>`;
+      });
+      let faunaHtml = '';
+      if (completed>1) faunaHtml += '<span class="text-2xl animate-pulse">🦋</span>';
+      if (completed>3) faunaHtml += '<span class="text-2xl anim-float-y">🐞</span>';
+      if (completed>5) faunaHtml += '<span class="text-3xl anim-sway">🐰</span>';
+
+      container.innerHTML = `
+        <div class="flex flex-col items-center text-center py-2 space-y-5 relative">
+
+          <!-- Banner taman -->
+          <div class="w-full rounded-[28px] p-4 border-2 shadow-inner relative overflow-hidden min-h-[200px] flex flex-col justify-between transition-all duration-700 ${theme.banner}">
+            ${state.darkMode
+              ? `<div class="absolute top-2 left-4 text-xs text-white/50 animate-pulse">✨</div><div class="absolute top-3 right-8 text-2xl animate-bounce" style="animation-duration:6s;">🌙</div>`
+              : `<div class="absolute top-2 left-4 text-xs animate-bounce" style="animation-duration:4s;">☁️</div><div class="absolute top-3 right-6 text-2xl" style="display:inline-block;animation:spin-slow 30s linear infinite;">☀️</div>`}
+            <div class="z-10 flex justify-between items-center">
+              <div class="px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${state.darkMode?'bg-slate-800/80 text-emerald-400':'bg-white/75 text-emerald-800'}">
+                <i data-lucide="award" class="w-3.5 h-3.5"></i><span>${t('level')} ${level}</span>
+              </div>
+              ${state.profile.isComplete?`<div class="px-3 py-1 rounded-full text-xs font-bold ${state.darkMode?'bg-slate-800/80 text-emerald-400':'bg-white/75 text-emerald-800'}">${activeAvatar?.emoji} ${state.profile.name}</div>`:''}
+            </div>
+            <div class="my-3 flex justify-center items-end gap-3.5 min-h-[80px] z-10">
+              <span class="text-3xl hover:scale-125 cursor-pointer transition">🌱</span>${flowersHtml}${faunaHtml}
+            </div>
+            <div class="w-full bg-white/30 rounded-full h-3.5 overflow-hidden border border-emerald-300/20">
+              <div class="bg-gradient-to-r from-emerald-500 to-lime-400 h-full rounded-full transition-all duration-500" style="width:${health}%;"></div>
+            </div>
+            <div class="text-[10px] font-bold mt-1 flex justify-between ${state.darkMode?'text-emerald-300':'text-emerald-900'}">
+              <span>${completed}/${total} ${state.lang==='en'?'Tasks Bloomed':'Tugas Mekar'}</span>
+              <span>${t('gardenHealth')}: ${health}%</span>
+            </div>
+          </div>
+
+          <!-- Selektor musim -->
+          <div class="w-full p-3 border-2 rounded-2xl flex flex-col gap-2 transition-colors ${theme.formBg}">
+            <div class="flex items-center gap-1 justify-center text-xs font-bold ${theme.accentText}">
+              <i data-lucide="palette" class="w-3.5 h-3.5" style="animation:spin-slow 8s linear infinite;display:inline-block;"></i>
+              <span>${t('season')}</span>
+            </div>
+            <div class="grid grid-cols-4 gap-1.5">
+              ${[
+                {id:'spring',emoji:'🌸',name:t('spring'),bg:'bg-rose-100 text-rose-800 border-rose-400'},
+                {id:'summer',emoji:'🌻',name:t('summer'),bg:'bg-amber-100 text-amber-800 border-amber-400'},
+                {id:'autumn',emoji:'🍁',name:t('autumn'),bg:'bg-orange-100 text-orange-800 border-orange-400'},
+                {id:'winter',emoji:'❄️',name:t('winter'),bg:'bg-sky-100 text-sky-800 border-sky-400'}
+              ].map(s=>`
+                <button onclick="changeSeason('${s.id}')" class="py-1.5 px-1 rounded-xl text-[10px] font-bold flex flex-col items-center gap-0.5 border-2 transition active:scale-95 ${state.season===s.id?`${s.bg} scale-105 shadow-sm`:'bg-white/40 border-transparent text-slate-500 hover:bg-white/60'}">
+                  <span class="text-sm">${s.emoji}</span><span>${s.name}</span>
+                </button>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- Judul -->
+          <div>
+            <h1 class="text-3xl font-bold flex items-center justify-center gap-1 ${theme.accentText}">
+              Garden Planner <i data-lucide="sparkles" class="w-6 h-6 text-amber-400 fill-amber-400 animate-pulse"></i>
+            </h1>
+            <p class="text-sm mt-1 px-4 leading-relaxed ${state.darkMode?'text-slate-400':'text-slate-500'}">${t('tagline')}</p>
+          </div>
+
+          <!-- Ringkasan profil -->
+          ${state.profile.isComplete?`
+            <div class="border-2 rounded-2xl p-4 w-full flex items-center gap-4 transition-colors relative overflow-hidden ${theme.formBg}">
+              <div class="absolute -bottom-3 -right-3 opacity-15 text-5xl">🌸</div>
+              <span class="text-4xl p-2 bg-white rounded-xl shadow-sm z-10">${activeAvatar?.emoji}</span>
+              <div class="text-left z-10">
+                <p class="text-xs font-bold uppercase tracking-wider ${theme.accentText}">${state.lang==='en'?'Happy Gardener':'Pekebun Bahagia'}</p>
+                <h3 class="font-bold text-base">${state.profile.name}</h3>
+                <p class="text-xs ${state.darkMode?'text-slate-400':'text-slate-500'}">🎂 ${new Date(state.profile.dob).toLocaleDateString(state.lang==='en'?'en-US':'id-ID',{year:'numeric',month:'long',day:'numeric'})}</p>
+              </div>
+            </div>
+          `:''}
+
+          <!-- Tombol navigasi -->
+          <div class="w-full space-y-4 pt-2">
+            <button onclick="navigate('profile')" class="w-full py-4 px-6 text-white rounded-2xl font-bold text-lg shadow-lg flex items-center justify-center gap-2 transform transition active:scale-95 ${theme.btnSecondary}">
+              <i data-lucide="user" class="w-6 h-6"></i>
+              <span>${state.profile.isComplete?(state.lang==='en'?'Edit Profile':'Ubah Profil'):t('enterProfile')}</span>
+            </button>
+            <button onclick="handleTodoNavigation()" class="w-full py-4 px-6 rounded-2xl font-bold text-lg shadow-lg flex items-center justify-center gap-2 transform transition active:scale-95 ${state.profile.isComplete?theme.btnPrimary:'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'}">
+              <i data-lucide="list-todo" class="w-6 h-6"></i>
+              <span>${t('todo')}</span>
+            </button>
+          </div>
+
+          <div class="text-xs flex items-center gap-1 justify-center italic pt-2 ${state.darkMode?'text-slate-500':'text-slate-400'}">
+            <i data-lucide="heart" class="w-3.5 h-3.5 text-rose-400 fill-rose-400 animate-pulse"></i>
+            <span>${state.lang==='en'?'Grow flowers by checking off tasks':'Tumbuhkan bunga dengan menyelesaikan tugas'}</span>
+          </div>
+        </div>`;
+    }
+
+    // ── PROFILE ───────────────────────────────────────────────────────
+    // Halaman profil sekarang menjadi tempat mengisi Nama, Tanggal Lahir, dan Avatar
+    function renderProfilePage(container, theme) {
+      container.innerHTML = `
+        <div class="space-y-6 relative">
+          <div class="text-center">
+            <span class="text-4xl anim-float-y inline-block">🎒</span>
+            <h2 class="text-2xl font-bold mt-2 ${theme.accentText}">${t('profile')}</h2>
+            <p class="text-xs mt-1 ${state.darkMode?'text-slate-400':'text-slate-400'}">
+              ${state.lang==='en'?'Tell us about the gardener':'Kenalkan diri Anda sebagai perawat taman'}
+            </p>
+          </div>
+          <form onsubmit="saveProfile(event)" class="space-y-5 relative z-10">
+
+            <!-- Nama -->
+            <div class="flex flex-col space-y-1.5">
+              <label class="text-sm font-bold ${state.darkMode?'text-slate-300':'text-slate-700'}">👤 ${t('name')}</label>
+              <input type="text" id="profile-name-input" value="${state.profile.name}"
+                oninput="state.profile.name = this.value"
+                placeholder="${state.lang==='en'?'Enter your name...':'Masukkan nama Anda...'}"
+                class="w-full px-4 py-3 rounded-xl border-2 focus:outline-none transition text-sm ${theme.inputText}"/>
+            </div>
+
+            <!-- Tanggal Lahir -->
+            <div class="flex flex-col space-y-1.5">
+              <label class="text-sm font-bold ${state.darkMode?'text-slate-300':'text-slate-700'}">📅 ${t('dob')}</label>
+              <input type="date" id="profile-dob-input" value="${state.profile.dob}"
+                oninput="state.profile.dob = this.value"
+                class="w-full px-4 py-3 rounded-xl border-2 focus:outline-none transition text-sm ${theme.inputText}"/>
+            </div>
+
+            <!-- Avatar -->
+            <div class="flex flex-col space-y-2">
+              <label class="text-sm font-bold ${state.darkMode?'text-slate-300':'text-slate-700'}">🦊 ${t('chooseAvatar')}</label>
+              <div class="grid grid-cols-5 gap-2.5">
+                ${AVATARS.map(av=>`
+                  <button type="button" onclick="selectAvatar('${av.id}')"
+                    class="p-2.5 rounded-2xl text-2xl transition duration-150 transform active:scale-95 flex flex-col items-center gap-1 border-2 ${
+                      state.profile.avatar===av.id
+                        ?'bg-emerald-100 border-emerald-500 scale-105 shadow-md'
+                        :(state.darkMode?'bg-slate-800 border-transparent hover:bg-slate-700':'bg-slate-50 border-transparent hover:bg-slate-100')
+                    }" title="${av.name}">
+                    <span>${av.emoji}</span>
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+
+            <button type="submit" class="w-full py-3.5 px-6 text-white font-bold rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2 text-base ${theme.btnSecondary}">
+              <span>${t('save')}</span>
+            </button>
+          </form>
+        </div>`;
+    }
+
+    // ── TODO ──────────────────────────────────────────────────────────
+    function renderTodoPage(container, theme) {
+      if (!state.profile.isComplete) {
+        container.innerHTML = `
+          <div class="text-center py-12 space-y-4">
+            <span class="text-5xl">⚠️</span>
+            <p class="font-bold text-lg ${theme.accentText}">${t('completeProfileFirst')}</p>
+            <button onclick="navigate('profile')" class="px-6 py-2.5 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 active:scale-95 transition">Go to Profile</button>
+          </div>`;
+        return;
+      }
+
+      const activeAvatar = AVATARS.find(a => a.id === state.profile.avatar);
+      const sortedTodos  = getSortedTodos();
+      let listHtml = '';
+      if (sortedTodos.length === 0) {
+        listHtml = `<div class="text-center py-8 px-4 border rounded-xl space-y-2 ${state.darkMode?'bg-slate-800/40 border-slate-800':'bg-slate-50 border-slate-100'}"><span class="text-3xl block">🍂</span><p class="text-xs max-w-[200px] mx-auto leading-relaxed ${state.darkMode?'text-slate-500':'text-slate-400'}">${t('noTasks')}</p></div>`;
+      } else {
+        listHtml = `<div class="space-y-2.5 relative z-10">`;
+        sortedTodos.forEach(todo => {
+          const fd = new Date(todo.date).toLocaleDateString(state.lang==='en'?'en-US':'id-ID',{month:'short',day:'numeric'});
+          listHtml += `
+            <div class="p-3.5 rounded-2xl border flex items-center justify-between gap-3 transition-all duration-300 ${todo.done?(state.darkMode?'bg-emerald-950/20 border-emerald-900/60 opacity-60':'bg-gradient-to-r from-emerald-50/50 to-teal-50/50 border-emerald-200/60 opacity-80'):(state.darkMode?'bg-slate-800/90 border-slate-700/60':'bg-white border-slate-100 shadow-sm')}">
+              <div class="flex items-start gap-3 flex-1 min-w-0">
+                <button onclick="toggleTaskStatus('${todo.id}')" class="mt-0.5 flex-shrink-0 transition transform active:scale-90">
+                  ${todo.done?`<i data-lucide="check-circle" class="w-5 h-5 text-emerald-500 fill-emerald-100"></i>`:
+                  `<div class="w-5 h-5 rounded-full border-2 flex items-center justify-center text-xs ${state.darkMode?'border-slate-600 bg-slate-900 hover:border-emerald-500':'border-slate-300 hover:border-emerald-400'}"><span class="scale-75">${todo.seedEmoji}</span></div>`}
+                </button>
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-bold break-words ${todo.done?'line-through text-slate-400':''}">${todo.task}</p>
+                  <div class="flex items-center gap-1.5 text-[10px] mt-1 font-semibold flex-wrap">
+                    <span class="px-1.5 py-0.5 rounded ${state.darkMode?'bg-slate-900 text-slate-400':'bg-slate-100 text-slate-600'}">📅 ${fd}</span>
+                    <span class="px-1.5 py-0.5 rounded ${state.darkMode?'bg-slate-900 text-slate-400':'bg-slate-100 text-slate-600'}">⏰ ${todo.time}</span>
+                    <span class="px-1.5 py-0.5 rounded ${state.darkMode?'bg-slate-900 text-emerald-300':'bg-slate-100 text-emerald-700'}">${todo.seedEmoji} ${todo.seedName}</span>
+                  </div>
+                </div>
+              </div>
+              <button onclick="deleteTask('${todo.id}')" class="text-slate-300 hover:text-rose-400 hover:bg-rose-50 p-1.5 rounded-full transition flex-shrink-0 active:scale-90">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>`;
+        });
+        listHtml += `</div>`;
+      }
+
+      container.innerHTML = `
+        <div class="space-y-6 relative">
+          <div class="text-center">
+            <span class="text-4xl anim-float-y inline-block">🌻</span>
+            <h2 class="text-2xl font-bold mt-2 ${theme.accentText}">${t('todo')}</h2>
+            <p class="text-xs mt-1 ${state.darkMode?'text-slate-400':'text-slate-500'}">Gardener: ${activeAvatar?.emoji} <span class="font-bold">${state.profile.name}</span></p>
+          </div>
+
+          <form onsubmit="addTask(event)" class="border rounded-2xl p-4 space-y-4 shadow-sm ${theme.formBg}">
+            <h3 class="font-bold text-sm flex items-center gap-1 ${theme.accentText}"><i data-lucide="sparkles" class="w-4 h-4"></i><span>${t('addActivity')}</span></h3>
+            <input type="text" id="task-name-input" value="${state.tempTaskName||''}" oninput="state.tempTaskName=this.value"
+              placeholder="${t('taskName')}" class="w-full px-3.5 py-2.5 rounded-xl border focus:outline-none transition text-sm ${theme.inputText}"/>
+            <div class="flex flex-col space-y-1.5">
+              <label class="text-xs font-bold ${state.darkMode?'text-slate-300':'text-slate-700'}">🌸 ${t('chooseSeed')}</label>
+              <div class="grid grid-cols-6 gap-1">
+                ${SEEDS.map(seed=>`
+                  <button type="button" onclick="selectSeed('${seed.id}')"
+                    class="p-1.5 rounded-xl border-2 transition active:scale-90 flex flex-col items-center ${state.selectedSeed===seed.id?'bg-emerald-100 border-emerald-500':(state.darkMode?'bg-slate-900 border-transparent':'bg-white border-transparent')}" title="${seed.name}">
+                    <span class="text-xl">${seed.emoji}</span>
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div class="flex flex-col space-y-1">
+                <label class="text-[11px] font-bold flex items-center gap-1 px-1 ${state.darkMode?'text-slate-400':'text-slate-500'}"><i data-lucide="calendar" class="w-3 h-3"></i> ${t('date')}</label>
+                <input type="date" id="task-date-input" value="${state.tempTaskDate||''}" oninput="state.tempTaskDate=this.value" class="px-3 py-2 rounded-xl border focus:outline-none transition text-xs ${theme.inputText}"/>
+              </div>
+              <div class="flex flex-col space-y-1">
+                <label class="text-[11px] font-bold flex items-center gap-1 px-1 ${state.darkMode?'text-slate-400':'text-slate-500'}"><i data-lucide="clock" class="w-3 h-3"></i> ${t('time')}</label>
+                <input type="time" id="task-time-input" value="${state.tempTaskTime||''}" oninput="state.tempTaskTime=this.value" class="px-3 py-2 rounded-xl border focus:outline-none transition text-xs ${theme.inputText}"/>
+              </div>
+            </div>
+            <button type="submit" class="w-full py-2.5 text-white font-bold rounded-xl text-sm transition active:scale-95 flex items-center justify-center gap-1.5 ${theme.btnPrimary}">
+              <i data-lucide="plus" class="w-4 h-4"></i><span>${t('addBtn')}</span>
+            </button>
+          </form>
+
+          <div class="flex items-center justify-between pt-2 border-t ${state.darkMode?'border-slate-800':'border-slate-100'}">
+            <h3 class="font-bold text-sm">${t('allTasks')}</h3>
+            <button onclick="toggleShowAll()" class="text-xs font-bold px-3 py-1.5 rounded-full transition ${state.darkMode?'bg-slate-800 hover:bg-slate-700 text-emerald-400':'bg-emerald-100/70 hover:bg-emerald-200/70 text-emerald-800'}">
+              ${state.showAll?t('showToday'):t('showAll')}
+            </button>
+          </div>
+          ${listHtml}
+        </div>`;
+    }
+
+    // ================================================================
+    //  NAVIGASI & PROFIL
+    // ================================================================
+    function navigate(p) { playClickSound(); state.page = p; renderApp(); }
+    function handleTodoNavigation() {
+      if (!state.profile.isComplete) { showAlert(t('completeProfileFirst')); playClickSound(); }
+      else navigate('todo');
+    }
+    function toggleShowAll() { playClickSound(); state.showAll = !state.showAll; renderApp(); }
+    function selectAvatar(id) { playClickSound(); state.profile.avatar = id; renderApp(); }
+
+    async function saveProfile(event) {
+      event.preventDefault();
+      playClickSound();
+      const nameInput = document.getElementById('profile-name-input').value.trim();
+      const dobInput  = document.getElementById('profile-dob-input').value;
+      if (!nameInput || !dobInput || !state.profile.avatar) { showAlert(t('fillAllFields')); return; }
+
+      state.profile.name       = nameInput;
+      state.profile.dob        = dobInput;
+      state.profile.isComplete = true;
+      localStorage.setItem('gardenplanner_profile', JSON.stringify(state.profile));
+
+      // Kirim update profil ke Google Sheets
+      await apiUpdateProfile(
+        currentUser ? currentUser.email : '',
+        nameInput, dobInput, state.profile.avatar
+      );
+
+      // Update currentUser juga
+      if (currentUser) { currentUser.nama = nameInput; currentUser.dob = dobInput; currentUser.avatar = state.profile.avatar; }
+
+      playSuccessChime();
+      document.getElementById('success-title').innerText    = t('successTitle');
+      document.getElementById('success-text').innerHTML     = `Hi, <b>${state.profile.name}</b>!<br>${t('successText')}`;
+      document.getElementById('success-next-btn').innerText = t('next');
+      document.getElementById('success-modal').classList.remove('hidden');
+    }
+
+    function goToTodoPage() {
+      playClickSound();
+      document.getElementById('success-modal').classList.add('hidden');
+      navigate('todo');
+    }
+
+    // ================================================================
+    //  MANAJEMEN TUGAS
+    // ================================================================
+    function selectSeed(id) { playClickSound(); state.selectedSeed = id; renderApp(); }
+
+    function addTask(event) {
+      event.preventDefault(); playClickSound();
+      const taskName = document.getElementById('task-name-input').value;
+      const taskDate = document.getElementById('task-date-input').value;
+      const taskTime = document.getElementById('task-time-input').value;
+      if (!taskName.trim() || !taskDate || !taskTime) { showAlert(state.lang==='en'?'Please fill in all task fields!':'Harap isi semua kolom!'); return; }
+      const seedInfo = SEEDS.find(s => s.id === state.selectedSeed);
+      state.todos.push({ id:Date.now().toString(), task:taskName, date:taskDate, time:taskTime, seedEmoji:seedInfo?.emoji||'🌱', seedName:seedInfo?.name||'Flower', done:false });
+      localStorage.setItem('gardenplanner_todos', JSON.stringify(state.todos));
+      playSuccessChime(); renderApp();
+    }
+
+    function toggleTaskStatus(id) {
+      playClickSound();
+      state.todos = state.todos.map(todo => {
+        if (todo.id === id) { const next = !todo.done; if (next) { playWateringSound(); setTimeout(playSuccessChime,450); } return {...todo,done:next}; }
+        return todo;
+      });
+      localStorage.setItem('gardenplanner_todos', JSON.stringify(state.todos));
+      renderApp();
+    }
+
+    function deleteTask(id) { playClickSound(); state.todos = state.todos.filter(x=>x.id!==id); localStorage.setItem('gardenplanner_todos',JSON.stringify(state.todos)); renderApp(); }
+
+    function getSortedTodos() {
+      let list = [...state.todos];
+      if (!state.showAll) { const today = new Date().toISOString().split('T')[0]; list = list.filter(t=>t.date===today); }
+      return list.sort((a,b)=>new Date(`${a.date}T${a.time}`)-new Date(`${b.date}T${b.time}`));
+    }
+
+    // ================================================================
+    //  PENGATURAN GLOBAL
+    // ================================================================
+    function toggleLanguage() { playClickSound(); state.lang=state.lang==='en'?'id':'en'; localStorage.setItem('gardenplanner_lang',state.lang); renderApp(); }
+    function changeSeason(id) { playClickSound(); state.season=id; localStorage.setItem('gardenplanner_season',id); updateSeasonTheme(); renderApp(); }
+
+    function toggleDarkMode() {
+      playClickSound(); state.darkMode=!state.darkMode; localStorage.setItem('gardenplanner_darkmode',JSON.stringify(state.darkMode));
+      const btn = document.getElementById('dark-mode-btn');
+      if (state.darkMode) { btn.innerHTML=`<i data-lucide="sun" class="w-4 h-4"></i>`; btn.className="p-2 rounded-full transition active:scale-90 flex items-center justify-center bg-amber-400 text-slate-900"; }
+      else               { btn.innerHTML=`<i data-lucide="moon" class="w-4 h-4"></i>`; btn.className="p-2 rounded-full transition active:scale-90 flex items-center justify-center bg-slate-800 text-yellow-300 hover:bg-slate-700"; }
+      updateSeasonTheme(); renderApp();
+    }
+
+    function updateSeasonTheme() {
+      const theme = getCurrentTheme();
+      document.body.className = `relative overflow-x-hidden transition-all duration-500 ${theme.bg}`;
+      const af = document.getElementById('app-frame');
+      af.className = `w-full max-w-md rounded-[38px] shadow-2xl border-[10px] overflow-hidden flex flex-col relative min-h-[790px] z-10 transition-all duration-500 ${theme.card}`;
+      document.getElementById('app-header').className  = `p-4 flex justify-between items-center shadow-md transition-all duration-500 relative z-20 ${theme.header}`;
+      document.getElementById('app-footer').className  = `p-3 text-center text-[10px] font-bold border-t transition-all duration-500 relative z-20 flex items-center justify-center gap-1 ${state.darkMode?'bg-slate-950/50 border-slate-800 text-emerald-500/80':'bg-gradient-to-t from-emerald-100/50 to-transparent border-emerald-100/30 text-emerald-700/80'}`;
+      const qc = state.darkMode
+        ? "text-sm italic mt-4 bg-slate-900/40 p-4 rounded-2xl border border-pink-900/10 backdrop-blur-sm shadow-sm text-slate-300 transition-colors duration-500"
+        : "text-sm italic mt-4 bg-white/45 p-4 rounded-2xl border border-emerald-200/20 backdrop-blur-sm shadow-sm text-emerald-800/60 transition-colors duration-500";
+      const lq=document.getElementById('left-quote'), rq=document.getElementById('right-quote');
+      if(lq) lq.className=qc; if(rq) rq.className=qc;
+      renderWeatherEffects();
+    }
+
+    // ================================================================
+    //  EFEK CUACA
+    // ================================================================
+    function renderWeatherEffects() {
+      const container = document.getElementById('weather-ambient-container');
+      container.innerHTML = '';
+      if (!state.darkMode) {
+        container.innerHTML += `
+          <div class="absolute top-[8%] left-0 text-7xl opacity-20 anim-drift-slow">☁️</div>
+          <div class="absolute top-[22%] left-0 text-5xl opacity-15 anim-drift-fast" style="animation-delay:-8s">☁️</div>
+          <div class="absolute top-[45%] left-0 text-6xl opacity-25 anim-drift-slow" style="animation-delay:-20s">☁️</div>`;
+      } else {
+        container.innerHTML += `
+          <span class="absolute text-lg text-yellow-300 anim-firefly left-[8%] top-[15%]">✨</span>
+          <span class="absolute text-sm text-amber-200 anim-firefly left-[26%] top-[50%]" style="animation-delay:2s">✨</span>
+          <span class="absolute text-xl text-yellow-200 anim-firefly left-[64%] top-[25%]" style="animation-delay:1s">✨</span>
+          <span class="absolute text-sm text-amber-300 anim-firefly left-[82%] top-[65%]" style="animation-delay:3s">✨</span>`;
+      }
+      let particles = [];
+      if (state.season==='spring') particles=['🌸','🍃','✨','🌸','🌸'];
+      if (state.season==='summer') particles=['🦋','🫧','✨','🦋','🫧'];
+      if (state.season==='autumn') particles=['🍁','🍂','✨','🍁','🍂'];
+      if (state.season==='winter') particles=['❄️','🌨️','✨','❄️','❄️'];
+      [6,24,45,68,85,93].forEach((pos,idx) => {
+        container.innerHTML += `<span class="absolute text-xl anim-fall" style="left:${pos}%;animation-delay:${idx*1.5}s;animation-duration:${10+(idx%3)*2}s">${particles[idx%particles.length]}</span>`;
+      });
+    }
+
+    // ================================================================
+    //  SPARKLES KLIK
+    // ================================================================
+    function triggerClickSparkles(e) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x=e.clientX-rect.left, y=e.clientY-rect.top;
+      let em=['✨','🌸','🍃','💫'];
+      if(state.season==='spring') em=['🌸','🍃','✨','🌸'];
+      if(state.season==='summer') em=['🌻','🍃','🫧','✨'];
+      if(state.season==='autumn') em=['🍁','🍂','✨','🌾'];
+      if(state.season==='winter') em=['❄️','🌨️','✨','🫧'];
+      for(let i=0;i<5;i++){
+        const p=document.createElement('span'); p.className='particle-sparkle';
+        p.innerText=em[Math.floor(Math.random()*em.length)];
+        const size=14+Math.random()*12, angle=Math.random()*Math.PI*2, speed=1+Math.random()*3;
+        p.style.left=`${x}px`; p.style.top=`${y}px`; p.style.fontSize=`${size}px`;
+        p.style.setProperty('--mx',`${Math.cos(angle)*speed*40}px`);
+        p.style.setProperty('--my',`${Math.sin(angle)*speed*40-50}px`);
+        e.currentTarget.appendChild(p); setTimeout(()=>p.remove(),900);
+      }
+    }
+
+    // ================================================================
+    //  PET
+    // ================================================================
+    function handlePetInteraction() {
+      playClickSound(); playSuccessChime();
+      const q=PET_QUOTES[state.lang], rq=q[Math.floor(Math.random()*q.length)];
+      const bubble=document.getElementById('pet-bubble');
+      bubble.innerText=rq; bubble.classList.remove('hidden');
+      setTimeout(()=>bubble.classList.add('hidden'),4000);
+    }
+
+    // ================================================================
+    //  MODAL
+    // ================================================================
+    function showAlert(msg) {
+      document.getElementById('alert-text').innerText=msg;
+      const card=document.getElementById('alert-card');
+      card.className=`rounded-2xl p-5 w-full max-w-xs text-center border-4 border-amber-300 shadow-xl space-y-4 ${state.darkMode?'bg-slate-800 text-white':'bg-white text-slate-800'}`;
+      document.getElementById('alert-modal').classList.remove('hidden');
+    }
+    function closeAlert() { playClickSound(); document.getElementById('alert-modal').classList.add('hidden'); }
+
+    // ================================================================
+    //  AUDIO
+    // ================================================================
+    function initAudioContext() {
+      if (!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+      if (audioCtx.state==='suspended') audioCtx.resume();
+    }
+    function playMusicBoxNote(freq,time,volume=0.05,octave=true){
+      if(!audioCtx) return;
+      const o1=audioCtx.createOscillator(),g1=audioCtx.createGain();
+      o1.type='triangle'; o1.frequency.setValueAtTime(freq,time);
+      o1.connect(g1); g1.connect(audioCtx.destination);
+      g1.gain.setValueAtTime(0,time); g1.gain.linearRampToValueAtTime(volume,time+0.01); g1.gain.exponentialRampToValueAtTime(0.001,time+0.8);
+      o1.start(time); o1.stop(time+1.0);
+      if(octave){
+        const o2=audioCtx.createOscillator(),g2=audioCtx.createGain();
+        o2.type='sine'; o2.frequency.setValueAtTime(freq*2,time);
+        o2.connect(g2); g2.connect(audioCtx.destination);
+        g2.gain.setValueAtTime(0,time); g2.gain.linearRampToValueAtTime(volume*0.35,time+0.015); g2.gain.exponentialRampToValueAtTime(0.001,time+0.4);
+        o2.start(time); o2.stop(time+0.5);
+      }
+    }
+    function playBassNote(freq,time){
+      if(!audioCtx) return;
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain(),f=audioCtx.createBiquadFilter();
+      o.type='sine'; o.frequency.setValueAtTime(freq,time); f.type='lowpass'; f.frequency.setValueAtTime(150,time);
+      o.connect(f); f.connect(g); g.connect(audioCtx.destination);
+      g.gain.setValueAtTime(0,time); g.gain.linearRampToValueAtTime(0.045,time+0.15); g.gain.exponentialRampToValueAtTime(0.001,time+2.2);
+      o.start(time); o.stop(time+2.4);
+    }
+    function startMusicBox(){
+      initAudioContext(); melodyStep=0; melodyNoteIndex=3;
+      musicInterval=setInterval(()=>{
+        const step=melodyStep,bar=Math.floor(step/8)%CHORDS.length,beat=step%8;
+        const chord=CHORD_DATA[CHORDS[bar]],scale=chord.scale;
+        if(beat===0) playBassNote(chord.root,audioCtx.currentTime);
+        const rt=RHYTHM_TEMPLATES[bar%RHYTHM_TEMPLATES.length];
+        if(rt[beat]){
+          let ni=melodyNoteIndex+(Math.random()>0.5?1:-1)*(Math.floor(Math.random()*2)+1);
+          if(ni<0) ni=1; if(ni>=scale.length) ni=scale.length-2;
+          melodyNoteIndex=ni;
+          playMusicBoxNote(scale[ni],audioCtx.currentTime,beat===0||beat===4?0.065:0.045,true);
+        }
+        if(beat===3||beat===6) playMusicBoxNote(scale[0],audioCtx.currentTime+0.05,0.02,false);
+        melodyStep=(step+1)%(CHORDS.length*8);
+      },280);
+    }
+    function stopMusicBox(){ if(musicInterval){clearInterval(musicInterval);musicInterval=null;} }
+    function toggleMusic(){
+      playClickSound();
+      const btn=document.getElementById('music-btn');
+      if(state.isMusicPlaying){
+        stopMusicBox(); state.isMusicPlaying=false;
+        btn.innerHTML=`<i data-lucide="volume-x" class="w-4 h-4"></i>`;
+        btn.className="p-2 rounded-full transition active:scale-90 flex items-center justify-center bg-white/20 text-white";
+      } else {
+        startMusicBox(); state.isMusicPlaying=true;
+        btn.innerHTML=`<i data-lucide="volume-2" class="w-4 h-4"></i>`;
+        btn.className="p-2 rounded-full transition active:scale-90 flex items-center justify-center bg-amber-300 text-slate-800 animate-pulse";
+      }
+      lucide.createIcons();
+    }
+    function playClickSound(){
+      try{
+        initAudioContext(); if(!audioCtx) return;
+        const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+        o.connect(g); g.connect(audioCtx.destination);
+        o.type='sine'; o.frequency.setValueAtTime(650,audioCtx.currentTime); o.frequency.exponentialRampToValueAtTime(160,audioCtx.currentTime+0.1);
+        g.gain.setValueAtTime(0.12,audioCtx.currentTime); g.gain.linearRampToValueAtTime(0.01,audioCtx.currentTime+0.1);
+        o.start(audioCtx.currentTime); o.stop(audioCtx.currentTime+0.1);
+      }catch(e){}
+    }
+    function playWateringSound(){
+      try{
+        initAudioContext(); if(!audioCtx) return;
+        const bs=audioCtx.sampleRate*0.4,buf=audioCtx.createBuffer(1,bs,audioCtx.sampleRate);
+        const d=buf.getChannelData(0); for(let i=0;i<bs;i++) d[i]=Math.random()*2-1;
+        const n=audioCtx.createBufferSource(); n.buffer=buf;
+        const f=audioCtx.createBiquadFilter(); f.type='bandpass'; f.frequency.setValueAtTime(1200,audioCtx.currentTime); f.frequency.exponentialRampToValueAtTime(400,audioCtx.currentTime+0.4);
+        const g=audioCtx.createGain(); g.gain.setValueAtTime(0.1,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.4);
+        n.connect(f); f.connect(g); g.connect(audioCtx.destination); n.start(audioCtx.currentTime); n.stop(audioCtx.currentTime+0.4);
+      }catch(e){}
+    }
+    function playSuccessChime(){
+      try{
+        initAudioContext(); if(!audioCtx) return;
+        [523.25,659.25,783.99,1046.50].forEach((freq,i)=>{
+          const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+          o.connect(g); g.connect(audioCtx.destination); o.type='triangle';
+          o.frequency.setValueAtTime(freq,audioCtx.currentTime+i*0.08);
+          g.gain.setValueAtTime(0.08,audioCtx.currentTime+i*0.08); g.gain.linearRampToValueAtTime(0.01,audioCtx.currentTime+i*0.08+0.25);
+          o.start(audioCtx.currentTime+i*0.08); o.stop(audioCtx.currentTime+i*0.08+0.25);
+        });
+      }catch(e){}
+    }
+
+  </script>
+</body>
+</html>
